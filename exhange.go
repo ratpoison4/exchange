@@ -116,6 +116,11 @@ func main() {
 				http.Error(w, "bad date format", code)
 				return
 			}
+			if date.After(time.Now().UTC()) {
+				code = http.StatusBadRequest
+				http.Error(w, "bad date", code)
+				return
+			}
 		} else {
 			date = time.Now().UTC()
 		}
@@ -134,7 +139,6 @@ func main() {
 		}
 		// ok
 	})
-
 	errc := make(chan error)
 	go interrupt(errc)
 	go func() {
