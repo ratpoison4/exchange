@@ -3,6 +3,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -12,6 +13,7 @@ import (
 	"os/signal"
 	"runtime"
 	"syscall"
+	"time"
 
 	"github.com/z0rr0/exchange/rates"
 )
@@ -33,15 +35,22 @@ var (
 	// GoVersion is runtime Go language version
 	GoVersion = runtime.Version()
 
+	// requiredCodes are default required codes
+	requiredCodes = map[string][]string{
+		"USD": {"$", "dollar", "доллар"},
+		"EUR": {"€", "euro", "евро"},
+		"RUB": {"₽", "rub", "руб"},
+	}
+
 	loggerError = log.New(os.Stderr, fmt.Sprintf("ERROR [%v]: ", Name), log.Ldate|log.Ltime|log.Lshortfile)
 	loggerInfo  = log.New(os.Stdout, fmt.Sprintf("INFO [%v]: ", Name), log.Ldate|log.Ltime|log.Lshortfile)
-	loggerDebug = log.New(os.Stdout, fmt.Sprintf("DEBUG [%v]: ", Name), log.Ldate|log.Lmicroseconds|log.Lshortfile)
 )
 
-func interrupt() error {
+// interrupt catches custom signals.
+func interrupt(errc chan error) {
 	c := make(chan os.Signal)
 	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
-	return fmt.Errorf("signal %v", <-c)
+	errc <- fmt.Errorf("signal %v", <-c)
 }
 
 func main() {
@@ -59,30 +68,78 @@ func main() {
 		fmt.Printf("\tRevision: %v\n\tBuild date: %v\n\tGo version: %v\n", Revision, Date, GoVersion)
 		return
 	}
-	logger := log.New(ioutil.Discard, "", 0)
+	logger := log.New(ioutil.Discard, fmt.Sprintf("DEBUG [%v]: ", Name),
+		log.Ldate|log.Lmicroseconds|log.Lshortfile)
 	if *debug {
-		logger = loggerDebug
+		logger.SetOutput(os.Stdout)
 	}
 	cfg, err := rates.New(*config, logger)
 	if err != nil {
 		loggerError.Fatalf("configuration error: %v", err)
+	}
+	err = cfg.SetRequiredCodes(requiredCodes)
+	if err != nil {
+		loggerError.Fatal(err)
 	}
 	server := &http.Server{
 		Addr:           cfg.Addr(),
 		Handler:        http.DefaultServeMux,
 		ReadTimeout:    cfg.HandleTimeout(),
 		WriteTimeout:   cfg.HandleTimeout(),
-		MaxHeaderBytes: 1 << 10, // 1kB
+		MaxHeaderBytes: 1 << 20, // 1MB
 		ErrorLog:       loggerError,
 	}
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		var date time.Time
+		start, code := time.Now(), http.StatusOK
+		defer func() {
+			loggerInfo.Printf("%-5v %v\t%-12v\t%v",
+				r.Method,
+				code,
+				time.Since(start),
+				r.URL.String(),
+			)
+		}()
+		if path := r.URL.Path; path != "/" {
+			code = http.StatusNotFound
+			http.NotFound(w, r)
+			return
+		}
+		query := r.FormValue("q")
+		if query == "" {
+			query = "1 rub"
+		}
+		if d := r.FormValue("d"); d != "" {
+			date, err = time.Parse("2006-01-02", d)
+			if err != nil {
+				code = http.StatusBadRequest
+				http.Error(w, "bad date format", code)
+				return
+			}
+		} else {
+			date = time.Now().UTC()
+		}
+		info, code, err := cfg.GetRates(date, query)
+		if err != nil {
+			http.Error(w, err.Error(), code)
+			return
+		}
+		encoder := json.NewEncoder(w)
+		err = encoder.Encode(info)
+		if err != nil {
+			code = http.StatusInternalServerError
+			http.Error(w, "internal server error", code)
+			return
+		}
+		// ok
+	})
+
 	errc := make(chan error)
+	go interrupt(errc)
 	go func() {
 		errc <- server.ListenAndServe()
 	}()
-	go func() {
-		errc <- interrupt()
-	}()
 	loggerInfo.Printf("running: version=%v [%v %v debug=%v]\nListen: %v\n\n",
-		Version, GoVersion, Revision, *debug, server.Addr)
+		Version, GoVersion, Revision, *debug || cfg.Debug, server.Addr)
 	loggerInfo.Printf("termination: %v [%v] reason: %+v\n", Version, Revision, <-errc)
 }
