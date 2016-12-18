@@ -27,3 +27,4 @@ _testmain.go
 *.swp
 config.json
 XML_daily.xml
+*~
