@@ -124,11 +124,12 @@ func main() {
 			http.Error(w, err.Error(), code)
 			return
 		}
+		w.Header().Set("Content-Type", "application/json")
 		encoder := json.NewEncoder(w)
 		err = encoder.Encode(info)
 		if err != nil {
 			code = http.StatusInternalServerError
-			http.Error(w, "internal server error", code)
+			http.Error(w, http.StatusText(code), code)
 			return
 		}
 		// ok

@@ -7,6 +7,6 @@ all: install
 install:
 	go install -ldflags "$(VERSION)" github.com/z0rr0/exchange
 
-debug: install
+run: install
 	cp config.example.json config.json
 	$(GOPATH)/$(BIN)
