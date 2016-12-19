@@ -1,3 +1,4 @@
+PROGRAM=exchange
 BIN=bin/exchange
 VERSION=`bash version.sh`
 
@@ -19,3 +20,11 @@ lint: install
 
 test: install
 	go test -race -v -cover -coverprofile=rates_profile.out -trace rates_trace.out github.com/z0rr0/exchange/rates
+
+docker: lint
+	cp $(GOPATH)/$(BIN) ./
+	docker build -t $(PROGRAM) .
+
+clean:
+	rm -f $(PROGRAM)
+	rm -f $(GOPATH)/$(BIN)

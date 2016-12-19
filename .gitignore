@@ -23,8 +23,9 @@ _testmain.go
 *.test
 *.prof
 
+*~
 .idea
 *.swp
 config.json
 XML_daily.xml
-*~
+exchange
