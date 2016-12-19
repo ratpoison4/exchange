@@ -65,7 +65,8 @@ func main() {
 	flag.Parse()
 
 	if *version {
-		fmt.Printf("\tRevision: %v\n\tBuild date: %v\n\tGo version: %v\n", Revision, Date, GoVersion)
+		fmt.Printf("\tVersion: %v\n\tRevision: %v\n\tBuild date: %v\n\tGo version: %v\n",
+			Version, Revision, Date, GoVersion)
 		return
 	}
 	logger := log.New(ioutil.Discard, fmt.Sprintf("DEBUG [%v]: ", Name),
