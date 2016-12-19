@@ -19,7 +19,9 @@ lint: install
 	golint github.com/z0rr0/exchange
 
 test: install
-	go test -race -v -cover -coverprofile=rates_profile.out -trace rates_trace.out github.com/z0rr0/exchange/rates
+	# go tool cover -html=github.com/z0rr0/exchange/rates/coverage.out
+	# go tool trace <package_path>/<package_name>.test github.com/z0rr0/exchange/rates/trace.out
+	go test -race -v -cover -coverprofile=coverage.out -trace trace.out github.com/z0rr0/exchange/rates
 
 docker: lint
 	cp $(GOPATH)/$(BIN) ./

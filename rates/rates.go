@@ -1,4 +1,5 @@
-// Package rates contains API methods handlers.
+// Package rates contains methods get currencies exchange rates
+// from Russian Central Bank https://www.cbr.ru
 package rates
 
 import (
