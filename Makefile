@@ -1,6 +1,7 @@
 PROGRAM=exchange
 BIN=bin/exchange
 VERSION=`bash version.sh`
+SOURCEDIR=src/github.com/z0rr0/exchange
 
 
 all: install
@@ -19,14 +20,14 @@ lint: install
 	golint github.com/z0rr0/exchange
 
 test: install
-	# go tool cover -html=github.com/z0rr0/exchange/rates/coverage.out
-	# go tool trace <package_path>/<package_name>.test github.com/z0rr0/exchange/rates/trace.out
-	go test -race -v -cover -coverprofile=coverage.out -trace trace.out github.com/z0rr0/exchange/rates
+	# go tool cover -html=ratest_coverage.out
+	# go tool trace ratest.test ratest_trace.out
+	go test -race -v -cover -coverprofile=ratest_coverage.out -trace ratest_trace.out github.com/z0rr0/exchange/rates
 
 docker: lint
 	cp $(GOPATH)/$(BIN) ./
 	docker build -t $(PROGRAM) .
 
 clean:
-	rm -f $(PROGRAM)
-	rm -f $(GOPATH)/$(BIN)
+	rm -f $(PROGRAM) $(GOPATH)/$(BIN)
+	rm -rf $(GOPATH)/$(SOURCEDIR)/*.out
