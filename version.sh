@@ -2,7 +2,6 @@
 
 FILENAME="version"
 TS="`TZ=UTC date +\"%F_%T\"`UTC"
-
 TAG="`git tag | sort --version-sort | tail -1`"
 VER="`git log --oneline | head -1 `"
 

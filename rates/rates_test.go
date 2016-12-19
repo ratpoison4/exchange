@@ -2,12 +2,12 @@ package rates
 
 import (
 	"log"
+	"net/http"
 	"os"
 	"path"
 	"strings"
 	"testing"
 	"time"
-	"net/http"
 )
 
 const (
