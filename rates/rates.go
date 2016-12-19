@@ -1,4 +1,4 @@
-// Package rates contains methods get currencies exchange rates
+// Package rates contains methods to get currencies exchange rates
 // from Russian Central Bank https://www.cbr.ru
 package rates
 
@@ -275,6 +275,9 @@ func (c *Cfg) reqRates(date time.Time, messages []parsedMsg, info map[string]flo
 
 // GetRates return currences rates info.
 func (c *Cfg) GetRates(date time.Time, msg string) (*Info, int, error) {
+	if c.codes == nil {
+		return nil, http.StatusInternalServerError, errors.New("uninitialized required codes")
+	}
 	strDate := date.Format("2006-01-02")
 	c.logger.Printf("start date=%v, msg=\"%v\"", strDate, msg)
 	messages := strings.Split(strings.ToLower(msg), ",")

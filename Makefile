@@ -19,7 +19,7 @@ lint: install
 	go vet github.com/z0rr0/exchange
 	golint github.com/z0rr0/exchange
 
-test: install
+test: lint
 	# go tool cover -html=ratest_coverage.out
 	# go tool trace ratest.test ratest_trace.out
 	go test -race -v -cover -coverprofile=ratest_coverage.out -trace ratest_trace.out github.com/z0rr0/exchange/rates

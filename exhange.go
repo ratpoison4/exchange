@@ -1,5 +1,5 @@
-// Package main runs web service
-// to handle incoming rate exchange requests.
+// Package main runs web service to handle incoming requests and
+// return Russian Central Bank rate exchange.
 package main
 
 import (
@@ -129,7 +129,7 @@ func main() {
 			http.Error(w, err.Error(), code)
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		encoder := json.NewEncoder(w)
 		err = encoder.Encode(info)
 		if err != nil {

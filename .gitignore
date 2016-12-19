@@ -26,6 +26,7 @@ _testmain.go
 *~
 .idea
 *.swp
+*.out
 config.json
 XML_daily.xml
 exchange
