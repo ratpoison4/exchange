@@ -125,9 +125,10 @@ func main() {
 		} else {
 			date = time.Now().UTC()
 		}
-		info, code, err := cfg.GetRates(date, query)
+		info, err := cfg.GetRates(date, query)
 		if err != nil {
-			http.Error(w, err.Error(), code)
+			rateError := err.(*rates.RateError)
+			http.Error(w, err.Error(), rateError.HTTPCode)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")

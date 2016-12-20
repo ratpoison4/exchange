@@ -72,6 +72,12 @@ type RateItem struct {
 	Rate map[string]float64 `json:"rate"`
 }
 
+// RateError is error type during rates getting.
+type RateError struct {
+	HTTPCode int
+	Msg      string
+}
+
 // Cfg is rates' configuration settings.
 type Cfg struct {
 	Host      string `json:"host"`
@@ -89,6 +95,11 @@ type parsedMsg struct {
 	msg      string
 	currency string
 	value    float64
+}
+
+// Error returns error message of RateError struct.
+func (r *RateError) Error() string {
+	return r.Msg
 }
 
 // externalTimeout is external service timeout.
@@ -274,33 +285,34 @@ func (c *Cfg) reqRates(date time.Time, messages []parsedMsg, info map[string]flo
 }
 
 // GetRates return currences rates info.
-func (c *Cfg) GetRates(date time.Time, msg string) (*Info, int, error) {
+func (c *Cfg) GetRates(date time.Time, msg string) (*Info, error) {
 	if c.codes == nil {
-		return nil, http.StatusInternalServerError, errors.New("uninitialized required codes")
+		return nil, &RateError{HTTPCode: http.StatusInternalServerError, Msg: "uninitialized required codes"}
 	}
 	strDate := date.Format("2006-01-02")
 	c.logger.Printf("start date=%v, msg=\"%v\"", strDate, msg)
+
 	messages := strings.Split(strings.ToLower(msg), ",")
 	if len(messages) == 0 {
-		return &Info{Date: strDate, Rates: []RateItem{}}, http.StatusOK, nil
+		return &Info{Date: strDate, Rates: []RateItem{}}, nil
 	}
 	parsedMessages := c.parseMsg(messages)
 	dayInfo, err := c.dayRates(date)
 	if err != nil {
-		c.logger.Println(err)
-		return nil, http.StatusServiceUnavailable, errors.New("get daily rates")
+		return nil, &RateError{HTTPCode: http.StatusServiceUnavailable, Msg: "get daily rates"}
 	}
 	currencyInfo, err := currencyMap(dayInfo.Items)
 	if err != nil {
-		c.logger.Println(err)
-		return nil, http.StatusInternalServerError, errors.New("internal error")
+		c.logger.Printf("currency map prepare: %v", err)
+		return nil, &RateError{HTTPCode: http.StatusInternalServerError, Msg: "internal error"}
 	}
 
 	items, err := c.reqRates(date, parsedMessages, currencyInfo)
 	if err != nil {
-		return nil, http.StatusInternalServerError, err
+		c.logger.Printf("rates result prepare: %v", err)
+		return nil, &RateError{HTTPCode: http.StatusInternalServerError, Msg: "prepare rates internal error"}
 	}
-	return &Info{Date: strDate, Rates: items}, http.StatusOK, nil
+	return &Info{Date: strDate, Rates: items}, nil
 }
 
 // New returns new rates configuration.

@@ -18,7 +18,7 @@ err = cfg.SetRequiredCodes(requiredCodes)
 if err != nil {
         log.Fatal(err)
 }
-info, status, err := cfg.GetRates(d, "15.5 euro, 100$")
+info, err := cfg.GetRates(d, "15.5 euro, 100$")
 if err != nil {
         log.Fatal(err)
 }

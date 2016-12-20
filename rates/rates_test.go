@@ -2,7 +2,6 @@ package rates
 
 import (
 	"log"
-	"net/http"
 	"os"
 	"path"
 	"strings"
@@ -16,7 +15,7 @@ const (
 )
 
 var (
-	logger = log.New(os.Stdout, "TEST", log.Ldate|log.Ltime|log.Lshortfile)
+	logger = log.New(os.Stdout, "TEST: ", log.Ldate|log.Ltime|log.Lshortfile)
 )
 
 func getConfig() string {
@@ -93,7 +92,7 @@ func TestCfg_GetRates(t *testing.T) {
 		t.Fatal(err)
 	}
 	d, q := time.Now().UTC(), ""
-	if _, _, err := cfg.GetRates(d, q); err == nil {
+	if _, err := cfg.GetRates(d, q); err == nil {
 		t.Error("unexpected behavior")
 	}
 	requiredCodes := map[string][]string{
@@ -106,15 +105,12 @@ func TestCfg_GetRates(t *testing.T) {
 	}
 	messages := []string{"100 dollars", "$1", "1 usd", "usd 1.5", "10 euros", "euro 10", "15.5 euros", "10 €"}
 	for i, msg := range messages {
-		info, status, err := cfg.GetRates(d, msg)
+		info, err := cfg.GetRates(d, msg)
 		if err != nil {
 			t.Error(err)
 		}
-		if status != http.StatusOK {
-			t.Errorf("unexpected status[%v]=%v", i, status)
-		}
 		if info == nil {
-			t.Error("unexpected behavior")
+			t.Errorf("unexpected behavior [%v]", i)
 		}
 		logger.Println(info.Rates)
 	}
@@ -125,7 +121,7 @@ func TestCfg_GetRates(t *testing.T) {
 	if err != nil {
 		t.Error("unexpected behavior")
 	}
-	if _, _, err := cfg.GetRates(d, "1 bad_value"); err == nil {
+	if _, err := cfg.GetRates(d, "1 bad_value"); err == nil {
 		t.Error("unexpected behavior")
 	}
 }
