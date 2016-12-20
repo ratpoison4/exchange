@@ -2,6 +2,7 @@ PROGRAM=exchange
 BIN=bin/exchange
 VERSION=`bash version.sh`
 SOURCEDIR=src/github.com/z0rr0/exchange
+CONTAINER=container.sh
 
 
 all: install
@@ -25,7 +26,7 @@ test: lint
 	go test -race -v -cover -coverprofile=ratest_coverage.out -trace ratest_trace.out github.com/z0rr0/exchange/rates
 
 docker: lint
-	cp $(GOPATH)/$(BIN) ./
+	bash $(CONTAINER)
 	docker build -t $(PROGRAM) .
 
 clean:

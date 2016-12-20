@@ -128,7 +128,9 @@ func main() {
 		info, err := cfg.GetRates(date, query)
 		if err != nil {
 			rateError := err.(*rates.RateError)
-			http.Error(w, err.Error(), rateError.HTTPCode)
+			code = rateError.HTTPCode
+			http.Error(w, err.Error(), code)
+			loggerError.Println(err.Error())
 			return
 		}
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
@@ -137,6 +139,7 @@ func main() {
 		if err != nil {
 			code = http.StatusInternalServerError
 			http.Error(w, http.StatusText(code), code)
+			loggerError.Println(err.Error())
 			return
 		}
 		// ok
