@@ -25,6 +25,11 @@ test: lint
 	# go tool trace ratest.test ratest_trace.out
 	go test -race -v -cover -coverprofile=ratest_coverage.out -trace ratest_trace.out github.com/z0rr0/exchange/rates
 
+clients:
+	go vet github.com/z0rr0/exchange/client
+	golint github.com/z0rr0/exchange/client
+	go install -ldflags "$(VERSION)" github.com/z0rr0/exchange/client
+
 docker: lint
 	bash $(CONTAINER)
 	docker build -t $(PROGRAM) .

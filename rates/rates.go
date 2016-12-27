@@ -315,6 +315,18 @@ func (c *Cfg) GetRates(date time.Time, msg string) (*Info, error) {
 	return &Info{Date: strDate, Rates: items}, nil
 }
 
+// String returns string representation Info value.
+func (i *Info) String() string {
+	result := fmt.Sprintf("%v\n", i.Date)
+	for _, rate := range i.Rates {
+		result += fmt.Sprintf("\t%v\n", rate.Msg)
+		for code, value := range rate.Rate {
+			result += fmt.Sprintf("\t\t%v: %.3f\n", code, value)
+		}
+	}
+	return result
+}
+
 // New returns new rates configuration.
 func New(filename string, logger *log.Logger) (*Cfg, error) {
 	fullPath, err := filepath.Abs(strings.Trim(filename, " "))
