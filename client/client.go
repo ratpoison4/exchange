@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/z0rr0/exchange/rates"
@@ -21,6 +22,7 @@ const (
 	name           = "ExchangeClient"
 	serviceURL     = "https://r.lus.su"
 	serviceTimeout = 3000
+	defaultRequest = "1rub"
 )
 
 var (
@@ -99,20 +101,23 @@ func main() {
 	debug := flag.Bool("debug", false, "debug mode")
 	version := flag.Bool("version", false, "show version")
 	timeoutUint := flag.Uint("timeout", serviceTimeout, "timeout (milliseconds)")
-	query := flag.String("q", "1 rub", "query")
 	service := flag.String("service", serviceURL, "service URL")
 	date := flag.String("d", time.Now().UTC().Format("2006-01-02"), "default current UTC date")
-	flag.Parse()
 
+	flag.Parse()
 	if *version {
 		fmt.Printf("\tVersion: %v\n\tRevision: %v\n\tBuild date: %v\n\tGo version: %v\n",
 			Version, Revision, Date, GoVersion)
 		flag.PrintDefaults()
 		return
 	}
-	timeout := time.Duration(*timeoutUint) * time.Millisecond
-
-	info, err := request(*service, *query, *date, fmt.Sprintf("%v/%v", name, Version), timeout, *debug)
+	queries := flag.Args()
+	if len(queries) == 0 {
+		queries = []string{defaultRequest}
+	}
+	info, err := request(*service, strings.Join(queries, ", "), *date,
+		fmt.Sprintf("%v/%v", name, Version),
+		time.Duration(*timeoutUint)*time.Millisecond, *debug)
 	if err != nil {
 		if *debug {
 			loggerInfo.Fatal(err)

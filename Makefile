@@ -1,5 +1,6 @@
 PROGRAM=exchange
 BIN=bin/exchange
+CLIENTBIN=bin/client
 VERSION=`bash version.sh`
 SOURCEDIR=src/github.com/z0rr0/exchange
 CONTAINER=container.sh
@@ -35,5 +36,5 @@ docker: lint
 	docker build -t $(PROGRAM) .
 
 clean:
-	rm -f $(PROGRAM) $(GOPATH)/$(BIN)
+	rm -f $(PROGRAM) $(GOPATH)/$(BIN) $(GOPATH)/$(CLIENTBIN)
 	rm -rf $(GOPATH)/$(SOURCEDIR)/*.out
