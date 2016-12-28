@@ -12,6 +12,7 @@ import (
 const (
 	configFile  = "config.example.json"
 	packageName = "github.com/z0rr0/exchange"
+	userAgent   = "rates_test/0.0"
 )
 
 var (
@@ -26,11 +27,11 @@ func getConfig() string {
 }
 
 func TestNew(t *testing.T) {
-	if _, err := New("/bad_file_path.json", logger); err == nil {
+	if _, err := New("/bad_file_path.json", logger, userAgent); err == nil {
 		t.Error("unexpected behavior")
 	}
 	cfgFile := getConfig()
-	cfg, err := New(cfgFile, logger)
+	cfg, err := New(cfgFile, logger, userAgent)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,16 +41,16 @@ func TestNew(t *testing.T) {
 }
 
 func TestCfg_HandleTimeout(t *testing.T) {
-	cfg, err := New(getConfig(), logger)
+	cfg, err := New(getConfig(), logger, userAgent)
 	if err != nil {
 		t.Fatal(err)
 	}
-	cfg.Timeout = 1
+	cfg.Timeout = 0
 	if err := cfg.isValid(); err == nil {
 		t.Error("uexpected behavior")
 	}
 	cfg.Timeout = 10
-	if et := cfg.externalTimeout(); et != ((10 - 1) * time.Second) {
+	if et := cfg.externalTimeout(); et != ((10*1000 - 100) * time.Millisecond) {
 		t.Errorf("unxpected timeout: %v", et)
 	}
 	if et := cfg.HandleTimeout(); et != (10 * time.Second) {
@@ -58,7 +59,7 @@ func TestCfg_HandleTimeout(t *testing.T) {
 }
 
 func TestCfg_GetCodes(t *testing.T) {
-	cfg, err := New(getConfig(), logger)
+	cfg, err := New(getConfig(), logger, userAgent)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,7 +73,7 @@ func TestCfg_GetCodes(t *testing.T) {
 }
 
 func TestCfg_SetRequiredCodes(t *testing.T) {
-	cfg, err := New(getConfig(), logger)
+	cfg, err := New(getConfig(), logger, userAgent)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,7 +88,7 @@ func TestCfg_SetRequiredCodes(t *testing.T) {
 }
 
 func TestCfg_GetRates(t *testing.T) {
-	cfg, err := New(getConfig(), logger)
+	cfg, err := New(getConfig(), logger, userAgent)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -86,12 +85,9 @@ func request(serviceHost, query, date, userAgent string, timeout time.Duration, 
 	if status := resp.StatusCode; status != http.StatusOK {
 		return nil, fmt.Errorf("not ok status response: %v", status)
 	}
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
+	decoder := json.NewDecoder(resp.Body)
 	info := &rates.Info{}
-	err = json.Unmarshal(body, info)
+	err = decoder.Decode(info)
 	if err != nil {
 		return nil, err
 	}

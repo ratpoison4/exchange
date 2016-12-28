@@ -3,6 +3,7 @@
 package rates
 
 import (
+	"context"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
@@ -85,7 +86,9 @@ type Cfg struct {
 	CacheSize int    `json:"cache"`
 	Timeout   int64  `json:"timeout"`
 	Debug     bool   `json:"debug"`
+	timeout   time.Duration
 	codes     map[string][]*regexp.Regexp
+	userAgent string
 	cache     *lru.Cache
 	logger    *log.Logger
 }
@@ -104,13 +107,14 @@ func (r *RateError) Error() string {
 
 // externalTimeout is external service timeout.
 func (c *Cfg) externalTimeout() time.Duration {
-	return time.Duration(c.Timeout-1) * time.Second
+	// external timeout is less than service one (100ms)
+	return time.Duration(c.Timeout*1000-100) * time.Millisecond
 }
 
 // isValid checks the settings are valid.
 func (c *Cfg) isValid() error {
 	// required 2 due to external timeout
-	if c.Timeout < 2 {
+	if c.Timeout < 1 {
 		return errors.New("invalid timeout value")
 	}
 	return nil
@@ -119,8 +123,11 @@ func (c *Cfg) isValid() error {
 // client returns HTTP client.
 func (c *Cfg) client() *http.Client {
 	tr := &http.Transport{
-		Proxy:               http.ProxyFromEnvironment,
-		TLSHandshakeTimeout: c.externalTimeout(),
+		Proxy:                 http.ProxyFromEnvironment,
+		TLSHandshakeTimeout:   10 * time.Second,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
 	}
 	return &http.Client{Transport: tr}
 }
@@ -231,6 +238,7 @@ func (c *Cfg) GetCodes() ([]CodeItem, error) {
 
 // dayRates gets currencies rates for requested day.
 func (c *Cfg) dayRates(date time.Time) (*ResponseRates, error) {
+	var resp *http.Response
 	dateReq := date.Format("02/01/2006")
 	if v, ok := c.cache.Get(dateReq); ok {
 		return v.(*ResponseRates), nil
@@ -238,16 +246,36 @@ func (c *Cfg) dayRates(date time.Time) (*ResponseRates, error) {
 	client := c.client()
 	values := url.Values{}
 	values.Add("date_req", dateReq)
-	reqURL := fmt.Sprintf("%v?%v", currenciesRatesURL, values.Encode())
 
+	reqURL := fmt.Sprintf("%v?%v", currenciesRatesURL, values.Encode())
 	c.logger.Printf("start request to %v", reqURL)
 	defer func() {
 		c.logger.Printf("done request to %v", reqURL)
 	}()
-
-	resp, err := client.Get(reqURL)
+	req, err := http.NewRequest("GET", reqURL, nil)
 	if err != nil {
 		return nil, err
+	}
+	req.Header.Add("User-Agent", c.userAgent)
+
+	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
+	defer cancel()
+	req = req.WithContext(ctx)
+
+	ec := make(chan error)
+	defer close(ec)
+
+	go func() {
+		resp, err = client.Do(req)
+		ec <- err
+	}()
+	select {
+	case <-ctx.Done():
+		return nil, fmt.Errorf("timed out (%v)", c.timeout)
+	case err := <-ec:
+		if err != nil {
+			return nil, err
+		}
 	}
 	defer resp.Body.Close()
 	if statusCode := resp.StatusCode; statusCode != http.StatusOK {
@@ -310,7 +338,7 @@ func (c *Cfg) GetRates(date time.Time, msg string) (*Info, error) {
 	items, err := c.reqRates(date, parsedMessages, currencyInfo)
 	if err != nil {
 		c.logger.Printf("rates result prepare: %v", err)
-		return nil, &RateError{HTTPCode: http.StatusInternalServerError, Msg: "prepare rates internal error"}
+		return nil, &RateError{HTTPCode: http.StatusBadRequest, Msg: "prepare rates error"}
 	}
 	return &Info{Date: strDate, Rates: items}, nil
 }
@@ -328,7 +356,7 @@ func (i *Info) String() string {
 }
 
 // New returns new rates configuration.
-func New(filename string, logger *log.Logger) (*Cfg, error) {
+func New(filename string, logger *log.Logger, userAgent string) (*Cfg, error) {
 	fullPath, err := filepath.Abs(strings.Trim(filename, " "))
 	if err != nil {
 		return nil, err
@@ -341,7 +369,7 @@ func New(filename string, logger *log.Logger) (*Cfg, error) {
 	if err != nil {
 		return nil, err
 	}
-	c := &Cfg{logger: logger}
+	c := &Cfg{logger: logger, userAgent: userAgent}
 	err = json.Unmarshal(jsonData, c)
 	if err != nil {
 		return nil, err
@@ -358,6 +386,7 @@ func New(filename string, logger *log.Logger) (*Cfg, error) {
 		c.logger.SetOutput(os.Stdout)
 	}
 	c.cache = cache
+	c.timeout = time.Duration(c.Timeout) * time.Second
 	return c, err
 }
 

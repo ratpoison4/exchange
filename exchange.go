@@ -74,7 +74,7 @@ func main() {
 	if *debug {
 		logger.SetOutput(os.Stdout)
 	}
-	cfg, err := rates.New(*config, logger)
+	cfg, err := rates.New(*config, logger, fmt.Sprintf("%v/%v", Name, Version))
 	if err != nil {
 		loggerError.Fatalf("configuration error: %v", err)
 	}
