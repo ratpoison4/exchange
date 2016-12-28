@@ -35,7 +35,8 @@ var (
 	// GoVersion is runtime Go language version
 	GoVersion = runtime.Version()
 
-	loggerInfo = log.New(os.Stdout, fmt.Sprintf("INFO [%v]: ", name), log.Ldate|log.Lmicroseconds|log.Lshortfile)
+	loggerInfo = log.New(os.Stdout, fmt.Sprintf("INFO [%v]: ", name),
+		log.Ldate|log.Lmicroseconds|log.Lshortfile)
 )
 
 func request(serviceHost, query, date, userAgent string, timeout time.Duration, debug bool) (*rates.Info, error) {
@@ -103,12 +104,11 @@ func main() {
 	timeoutUint := flag.Uint("timeout", serviceTimeout, "timeout (milliseconds)")
 	service := flag.String("service", serviceURL, "service URL")
 	date := flag.String("d", time.Now().UTC().Format("2006-01-02"), "default current UTC date")
-
 	flag.Parse()
+
 	if *version {
-		fmt.Printf("\tVersion: %v\n\tRevision: %v\n\tBuild date: %v\n\tGo version: %v\n",
-			Version, Revision, Date, GoVersion)
-		flag.PrintDefaults()
+		fmt.Printf("%v %v\n\tRevision: %v\n\tBuild date: %v\n\tGo version: %v\n",
+			name, Version, Revision, Date, GoVersion)
 		return
 	}
 	queries := flag.Args()

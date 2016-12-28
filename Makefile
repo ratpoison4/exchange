@@ -6,7 +6,7 @@ SOURCEDIR=src/github.com/z0rr0/exchange
 CONTAINER=container.sh
 
 
-all: install
+all: test clients
 
 install:
 	go install -ldflags "$(VERSION)" github.com/z0rr0/exchange
