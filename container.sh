@@ -14,7 +14,7 @@ mkdir -p $TARGET/bin $TARGET/pkg
 	--volume ${TARGET}/bin:/usr/p/bin \
 	--workdir /usr/p/src/github.com/z0rr0/exchange \
 	--env GOPATH=/usr/p \
-	golang:1.7-alpine go install -v -ldflags "${ATTRS}" github.com/z0rr0/exchange
+	${CONTAINER} go install -v -ldflags "${ATTRS}" github.com/z0rr0/exchange
 
 if [[ $? -gt 0 ]]; then
 	echo "ERROR: build container"
