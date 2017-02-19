@@ -3,6 +3,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"strings"
 	"syscall"
 	"time"
 
@@ -23,6 +25,10 @@ const (
 	Name = "Exchange"
 	// Config is default configuration file name
 	Config = "config.json"
+	// interruptPrefix is constant prefix of interrupt signal
+	interruptPrefix = "interrupt signal"
+	// shutdownTimeout is connections' graceful shutdown timeout
+	shutdownTimeout = time.Second * 2
 )
 
 var (
@@ -50,7 +56,7 @@ var (
 func interrupt(errc chan error) {
 	c := make(chan os.Signal)
 	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
-	errc <- fmt.Errorf("signal %v", <-c)
+	errc <- fmt.Errorf("%v %v", interruptPrefix, <-c)
 }
 
 func main() {
@@ -151,5 +157,17 @@ func main() {
 	}()
 	loggerInfo.Printf("running: version=%v [%v %v debug=%v]\nListen: %v\n\n",
 		Version, GoVersion, Revision, *debug || cfg.Debug, server.Addr)
-	loggerInfo.Printf("termination: %v [%v] reason: %+v\n", Version, Revision, <-errc)
+	err = <-errc
+	loggerInfo.Printf("termination: %v [%v] reason: %+v\n", Version, Revision, err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	defer cancel()
+
+	if msg := err.Error(); strings.HasPrefix(msg, interruptPrefix) {
+		loggerInfo.Println("graceful shutdown")
+		if err := server.Shutdown(ctx); err != nil {
+			loggerError.Printf("graceful shutdown error: %v\n", err)
+		}
+
+	}
 }
