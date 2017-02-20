@@ -47,16 +47,36 @@ var (
 		"EUR": {"€", "euro", "евро"},
 		"RUB": {"₽", "rub", "руб"},
 	}
-
+	// internal loggers
 	loggerError = log.New(os.Stderr, fmt.Sprintf("ERROR [%v]: ", Name), log.Ldate|log.Ltime|log.Lshortfile)
 	loggerInfo  = log.New(os.Stdout, fmt.Sprintf("INFO [%v]: ", Name), log.Ldate|log.Ltime|log.Lshortfile)
 )
+
+// help is help data structure
+type help struct {
+	D       string `json:"d"`
+	Q       string `json:"q"`
+	Comment string `json:"comment"`
+}
 
 // interrupt catches custom signals.
 func interrupt(errc chan error) {
 	c := make(chan os.Signal)
 	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	errc <- fmt.Errorf("%v %v", interruptPrefix, <-c)
+}
+
+// helpFunc writes help info to ResponseWriter and returns HTTP status code.
+func helpFunc(w http.ResponseWriter, r *http.Request, h *help) int {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	encoder := json.NewEncoder(w)
+	if err := encoder.Encode(h); err != nil {
+		code := http.StatusInternalServerError
+		http.Error(w, http.StatusText(code), code)
+		loggerError.Println(err.Error())
+		return code
+	}
+	return http.StatusOK
 }
 
 func main() {
@@ -88,6 +108,11 @@ func main() {
 	if err != nil {
 		loggerError.Fatal(err)
 	}
+	h := &help{
+		Q:       "query (default '1 rub')",
+		D:       "date using format YYYY-MM-DD (default today) [optional]",
+		Comment: "request get/post parameters",
+	}
 	server := &http.Server{
 		Addr:           cfg.Addr(),
 		Handler:        http.DefaultServeMux,
@@ -107,11 +132,17 @@ func main() {
 				r.URL.String(),
 			)
 		}()
-		if path := r.URL.Path; path != "/" {
+
+		switch path := strings.TrimRight(r.URL.Path, "/"); {
+		case path == "/help":
+			code = helpFunc(w, r, h)
+			return
+		case path != "":
 			code = http.StatusNotFound
 			http.NotFound(w, r)
 			return
 		}
+
 		query := r.FormValue("q")
 		if query == "" {
 			query = "1 rub"
