@@ -52,11 +52,17 @@ var (
 	loggerInfo  = log.New(os.Stdout, fmt.Sprintf("INFO [%v]: ", Name), log.Ldate|log.Ltime|log.Lshortfile)
 )
 
+// helpParameters is info about HTTP parameters
+type helpParameters struct {
+	D string `json:"d"`
+	Q string `json:"q"`
+}
+
 // help is help data structure
 type help struct {
-	D       string `json:"d"`
-	Q       string `json:"q"`
-	Comment string `json:"comment"`
+	P       helpParameters `json:"parameters"`
+	V       string         `json:"version"`
+	Comment string         `json:"comment"`
 }
 
 // interrupt catches custom signals.
@@ -109,9 +115,12 @@ func main() {
 		loggerError.Fatal(err)
 	}
 	h := &help{
-		Q:       "query (default '1 rub')",
-		D:       "date using format YYYY-MM-DD (default today) [optional]",
-		Comment: "request get/post parameters",
+		P: helpParameters{
+			Q: "query (default '1 rub')",
+			D: "date, format YYYY-MM-DD (default today) [optional]",
+		},
+		V:       Version,
+		Comment: "https://github.com/z0rr0/exchange",
 	}
 	server := &http.Server{
 		Addr:           cfg.Addr(),
