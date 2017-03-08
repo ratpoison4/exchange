@@ -1,4 +1,4 @@
-// Package main is client program for github.com/z0rr0/exchange service.
+// Package main is a client program for github.com/z0rr0/exchange service.
 package main
 
 import (

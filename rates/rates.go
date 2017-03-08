@@ -93,7 +93,7 @@ type Cfg struct {
 	logger    *log.Logger
 }
 
-// parsedMsg is a stuct of parsed message.
+// parsedMsg is a structure of parsed message.
 type parsedMsg struct {
 	msg      string
 	currency string
@@ -165,12 +165,12 @@ func (c *Cfg) parseMsg(messages []string) []parsedMsg {
 	return result
 }
 
-// Addr return service's net address.
+// Addr returns service's net address.
 func (c *Cfg) Addr() string {
 	return net.JoinHostPort(c.Host, fmt.Sprint(c.Port))
 }
 
-// HandleTimeout is service timeout
+// HandleTimeout is service timeout.
 func (c *Cfg) HandleTimeout() time.Duration {
 	return time.Duration(c.Timeout) * time.Second
 }
@@ -181,19 +181,20 @@ func (c *Cfg) SetRequiredCodes(codeNames map[string][]string) error {
 	codes := make(map[string][]*regexp.Regexp)
 	for code, names := range codeNames {
 		namesRegexp := make([]*regexp.Regexp, (len(names)+1)*2)
-		rg, err := regexp.Compile(fmt.Sprintf("(\\d+(\\.\\d+)?)\\s*(%s)", strings.ToLower(code)))
+		quotedCode := regexp.QuoteMeta(strings.ToLower(code))
+		rg, err := regexp.Compile(fmt.Sprintf("(\\d+(\\.\\d+)?)\\s*(%s)", quotedCode))
 		if err != nil {
 			return err
 		}
 		namesRegexp[0] = rg
-		rg, err = regexp.Compile(fmt.Sprintf("(%s)\\s*(\\d+(\\.\\d+)?)", strings.ToLower(code)))
+		rg, err = regexp.Compile(fmt.Sprintf("(%s)\\s*(\\d+(\\.\\d+)?)", quotedCode))
 		if err != nil {
 			return err
 		}
 		namesRegexp[1] = rg
 		for i, name := range names {
 			j := (i + 1) * 2
-			namePattern := strings.ToLower(name)
+			namePattern := regexp.QuoteMeta(strings.ToLower(name))
 			rg, err = regexp.Compile(fmt.Sprintf("(\\d+(\\.\\d+)?){1}\\s*(%s)", namePattern))
 			if err != nil {
 				return err
@@ -312,7 +313,7 @@ func (c *Cfg) reqRates(date time.Time, messages []parsedMsg, info map[string]flo
 	return result, nil
 }
 
-// GetRates return currences rates info.
+// GetRates returns currencies rates info.
 func (c *Cfg) GetRates(date time.Time, msg string) (*Info, error) {
 	if c.codes == nil {
 		return nil, &RateError{HTTPCode: http.StatusInternalServerError, Msg: "uninitialized required codes"}
