@@ -66,12 +66,13 @@ func request(serviceHost, query, date, userAgent string, timeout time.Duration, 
 	}
 	client := &http.Client{Transport: tr}
 
-	ec := make(chan error)
-	defer close(ec)
+	// set buffer to don't block a closing after deadline
+	ec := make(chan error, 1)
 
 	go func() {
 		resp, err = client.Do(req)
 		ec <- err
+		close(ec)
 	}()
 	select {
 	case <-ctx.Done():
