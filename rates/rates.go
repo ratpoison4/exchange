@@ -264,14 +264,14 @@ func (c *Cfg) dayRates(date time.Time) (*ResponseRates, error) {
 	req = req.WithContext(ctx)
 
 	ec := make(chan error)
-	defer close(ec)
-
 	go func() {
 		resp, err = client.Do(req)
 		ec <- err
+		close(ec)
 	}()
 	select {
 	case <-ctx.Done():
+		<-ec // wait error "context deadline exceeded"
 		return nil, fmt.Errorf("timed out (%v)", c.timeout)
 	case err := <-ec:
 		if err != nil {

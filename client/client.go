@@ -66,9 +66,7 @@ func request(serviceHost, query, date, userAgent string, timeout time.Duration, 
 	}
 	client := &http.Client{Transport: tr}
 
-	// set buffer to don't block a closing after deadline
-	ec := make(chan error, 1)
-
+	ec := make(chan error)
 	go func() {
 		resp, err = client.Do(req)
 		ec <- err
@@ -76,6 +74,7 @@ func request(serviceHost, query, date, userAgent string, timeout time.Duration, 
 	}()
 	select {
 	case <-ctx.Done():
+		<-ec // wait error "context deadline exceeded"
 		return nil, fmt.Errorf("timed out (%v)", timeout)
 	case err := <-ec:
 		if err != nil {
