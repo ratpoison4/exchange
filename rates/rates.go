@@ -4,24 +4,21 @@ package rates
 
 import (
 	"context"
-	"encoding/json"
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"math"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru"
 	"golang.org/x/net/html/charset"
 )
 
@@ -357,28 +354,8 @@ func (i *Info) String() string {
 }
 
 // New returns new rates configuration.
-func New(filename string, logger *log.Logger, userAgent string) (*Cfg, error) {
-	fullPath, err := filepath.Abs(strings.Trim(filename, " "))
-	if err != nil {
-		return nil, err
-	}
-	_, err = os.Stat(fullPath)
-	if err != nil {
-		return nil, err
-	}
-	jsonData, err := ioutil.ReadFile(fullPath)
-	if err != nil {
-		return nil, err
-	}
+func New(logger *log.Logger, userAgent string) (*Cfg, error) {
 	c := &Cfg{logger: logger, userAgent: userAgent}
-	err = json.Unmarshal(jsonData, c)
-	if err != nil {
-		return nil, err
-	}
-	err = c.isValid()
-	if err != nil {
-		return nil, err
-	}
 	cache, err := lru.New(c.CacheSize)
 	if err != nil {
 		return nil, err
